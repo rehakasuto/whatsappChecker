@@ -38,27 +38,46 @@ class Helper:
             exit(1)
 
     @staticmethod
-    def write_log(dt: datetime, value: str, receiver: str):
+    def write_log(dt: datetime, all_messages: str, last_message: str, receiver: str):
         """Writes a log entry to Firebase database."""
         date_format = dt.strftime("%x")
         time_format = dt.strftime("%X")
         ref = db.reference('/Logs')
         ref.push({
             'DateTime': date_format + " " + time_format,
-            'Text': value,
+            'AllMessages': all_messages,
+            'LastMessage': last_message,
             'Receiver': receiver
         })
 
     @staticmethod
-    def read_last_log():
+    def read_last_message():
         """Reads the last log entry from Firebase database."""
         ref = db.reference('/Logs')
         logs = ref.get()
         last_log = ""
         if logs:
             last_log_key = sorted(logs.keys())[-1]
-            last_log = logs[last_log_key]['Text']
+            last_log = logs[last_log_key]['LastMessage']
         return last_log
+
+    @staticmethod
+    def get_all_messages():
+        ref = db.reference('/Logs')
+        logs = ref.get()
+
+        messages = []
+        if logs:
+            for log_id in logs:
+                log = logs[log_id]
+                messages.append({
+                    'id': log_id,
+                    'DateTime': log.get('DateTime'),
+                    'Receiver': log.get('Receiver'),
+                    'LastMessage': log.get('LastMessage'),
+                    'AllMessages': log.get('AllMessages')
+                })
+        return messages
 
     @staticmethod
     def check_text_in_blacklist(text: str):
@@ -70,5 +89,5 @@ class Helper:
             print("blacklist.txt file not found.")
             return False
 
-        words = text.split()
+        words = text.lower().split()
         return any(word in blacklist for word in words)
